@@ -46,7 +46,7 @@ sent automatically with sendmail by $0.
 EOF
 
 
-    echo "$(date +%Y-%m-%d\ %H:%M:%S) - Backup created: $XWIKI_BACKUP_FILE_PATH" >> $XWIKI_BACKUP_LOCATION/backup.log
+echo "$(date +%Y-%m-%d\ %H:%M:%S) - Backup created: $XWIKI_BACKUP_FILE_PATH size: $(du -b $XWIKI_BACKUP_FILE_PATH | cut -f1) B" >> $XWIKI_BACKUP_LOCATION/backup.log
 }
 
 clean() {
@@ -67,20 +67,48 @@ clean() {
     fi
 }
 
+analysis() {
+    #check if gnuplot is installed
+    if ! command -v gnuplot &> /dev/null; then
+        echo "gnuplot is not installed. Please install it to use the analysis feature."
+        exit 1
+    fi
+
+    echo "Analysis of the backup folder:"
+    echo "Total size of backup folder: $(du -BM "$XWIKI_BACKUP_LOCATION" | cut -f1)MB"
+    echo "Number of backups: $(find "$XWIKI_BACKUP_LOCATION" -type f -name 'xwiki-backup-*.tar.gz' | wc -l)"
+    echo "Last backup file: $(ls -lt "$XWIKI_BACKUP_LOCATION" | grep 'xwiki-backup-' | head -n 1 | awk '{print $9}')"
+    echo ""
+    #get current terminal dimensions
+    terminal_width=$(tput cols)
+    terminal_height=$(( $(tput lines) - 10 ))
+    du -BK "$XWIKI_BACKUP_LOCATION"/*.gz | cut -f1 | tail -n20 | gnuplot -e "set terminal dumb size $terminal_width,$terminal_height; plot '-' with lines"
+}
+
 
 #check if the script is run as root
-if [ "$(id -u)" -ne 0 ]; then
-    echo "This script must be run as root. Please use sudo."
-    exit 1
-fi
+check_root() {
+    if [ "$(id -u)" -ne 0 ]; then
+        echo "This script must be run as root. Please use sudo."
+        exit 1
+    fi
+}
 
 #read from command line arguments
 if [ "$1" == "backup" ]; then
+    check_root
     backup
 elif [ "$1" == "clean" ]; then
-    clean 
+    check_root
+    clean
+elif [ "$1" == "analysis" ]; then
+    analysis
 else
-    echo "Usage: $0 {backup|clean}"
+    echo "Usage: $0 {backup|clean|analysis}"
+
+    echo "backup: Create a backup of the XWiki data"
+    echo "clean: Remove backups older than 30 days"
+    echo "analysis: Analyze the backup folder and display statistics and a graph of the backup size over time (gnuplot required)"
     exit 1
 fi  
 
