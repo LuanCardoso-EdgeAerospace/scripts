@@ -10,6 +10,10 @@ ADM_EMAIL="luan.cardoso@edge-aerospace.com"
 
 XWIKI_BACKUP_FILE_PATH=$XWIKI_BACKUP_LOCATION/$XWIKI_BACKUP_FILE
 
+# TODO: 
+# - only create a tar exevery VAR days.
+# - Make backup by using rsync with hardlinks.
+# - Make so the script can be used in other servers, by using environment variables.
 backup() {
     mkdir -p "$XWIKI_BACKUP_LOCATION"
     tar -czf "$XWIKI_BACKUP_FILE_PATH" -C "$XWIKI_LOCATION" .
@@ -77,12 +81,14 @@ analysis() {
     echo "Analysis of the backup folder:"
     echo "Total size of backup folder: $(du -BM "$XWIKI_BACKUP_LOCATION" | cut -f1)MB"
     echo "Number of backups: $(find "$XWIKI_BACKUP_LOCATION" -type f -name 'xwiki-backup-*.tar.gz' | wc -l)"
-    echo "Last backup file: $(ls -lt "$XWIKI_BACKUP_LOCATION" | grep 'xwiki-backup-' | head -n 1 | awk '{print $9}')"
+    LAST_BACKUP_FILE=$(ls -lt "$XWIKI_BACKUP_LOCATION" | grep 'xwiki-backup-' | head -n 1 | awk '{print $9}')
+    echo "Last backup file: $LAST_BACKUP_FILE $(du -h "$XWIKI_BACKUP_LOCATION/$LAST_BACKUP_FILE" | cut -f1)"
     echo ""
     #get current terminal dimensions
     terminal_width=$(tput cols)
     terminal_height=$(( $(tput lines) - 10 ))
-    du -BK "$XWIKI_BACKUP_LOCATION"/*.gz | cut -f1 | tail -n20 | gnuplot -e "set terminal dumb size $terminal_width,$terminal_height; plot '-' with lines"
+    du -BK "$XWIKI_BACKUP_LOCATION"/*.gz | cut -f1 | tail -n30 | \
+    gnuplot -e "set terminal dumb size $terminal_width,$terminal_height; plot '-' with lines"
 }
 
 
