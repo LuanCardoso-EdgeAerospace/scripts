@@ -1,5 +1,5 @@
 #!/bin/bash 
-dry_run=true
+# dry_run=true
 SCRIPT_TAG="zfsAuto"
 
 # Init variables
@@ -261,12 +261,59 @@ reportDiskUsage(){
 
 #--------------------------------------------------------------------------------------------#
 
+validateRetentionPolicy(){
+    # Validate that the retention policy is sane.
+    DAILY_BACKUPS=$(config_get DAILY_BACKUPS)
+    WEEKLY_BACKUPS=$(config_get WEEKLY_BACKUPS)
+    MONTHLY_BACKUPS=$(config_get MONTHLY_BACKUPS)
+    YEARLY_BACKUPS=$(config_get YEARLY_BACKUPS) 
+
+    if ! [[ "$DAILY_BACKUPS" =~ ^[0-9]+$ ]] || ! [[ "$WEEKLY_BACKUPS" =~ ^[0-9]+$ ]] || ! [[ "$MONTHLY_BACKUPS" =~ ^[0-9]+$ ]] || ! [[ "$YEARLY_BACKUPS" =~ ^[0-9]+$ ]]; then
+        die "Retention policy values must be non-negative integers."
+    fi  
+
+    #check if the retention policy is not too low
+    if [ "$DAILY_BACKUPS" -lt 1 ] && [ "$WEEKLY_BACKUPS" -lt 1 ] && [ "$MONTHLY_BACKUPS" -lt 1 ] && [ "$YEARLY_BACKUPS" -lt 1 ]; then
+        die "At least one retention policy value must be greater than zero."
+    fi  
+
+    # TODO: Check if these rules make sense. Maybe they are too strict.
+    # if [ "$WEEKLY_BACKUPS" -gt 0 ] && [ "$DAILY_BACKUPS" -lt 7 ]; then
+    #     die "If WEEKLY_BACKUPS is greater than zero, DAILY_BACKUPS must be at least 7."
+    # fi
+
+    # if [ "$MONTHLY_BACKUPS" -gt 0 ] && [ "$WEEKLY_BACKUPS" -lt 4 ]; then
+    #     die "If MONTHLY_BACKUPS is greater than zero, WEEKLY_BACKUPS must be at least 4."
+    # fi
+
+    # if [ "$YEARLY_BACKUPS" -gt 0 ] && [ "$MONTHLY_BACKUPS" -lt 12 ]; then
+    #     die "If YEARLY_BACKUPS is greater than zero, MONTHLY_BACKUPS must be at least 12."
+    # fi
+
+    TARBALL_RETENTION=$(config_get TARBALL_RETENTION)
+    if ! [[ "$TARBALL_RETENTION" =~ ^[0-9]+$ ]]; then
+        die "TARBALL_RETENTION must be a non-negative integer."
+    fi
+    if [ "$TARBALL_RETENTION" -lt 1 ]; then
+        die "TARBALL_RETENTION must be at least 1."
+    fi
+
+    # msg "Retention policy is valid."
+    # msg "Daily backups to keep: $DAILY_BACKUPS"
+    # msg "Weekly backups to keep: $WEEKLY_BACKUPS"
+    # msg "Monthly backups to keep: $MONTHLY_BACKUPS"
+    # msg "Yearly backups to keep: $YEARLY_BACKUPS"
+    # msg "Backup tarballs to keep: $TARBALL_RETENTION"
+
+}
 
 
 # check if another instance of this script is running
 if pidof -o %PPID -x "$(basename "$0")"; then
     die "Another instance of $(basename "$0") is already running."
 fi
+
+validateRetentionPolicy
 
 for arg in "$@"; do
     case $arg in
