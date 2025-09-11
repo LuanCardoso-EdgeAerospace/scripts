@@ -1,0 +1,16 @@
+Custom script for replicating the zfs folder into the backup NAS.
+
+The script does this steps:
+
+- Creates a temporary snapshot
+- mounts the NAS directory using nfs
+- rsync from the snapshot into the nfs
+- unmounts 
+- deletes the temporary snapshot.
+- Appends logfile to ~/nasSync.log
+
+Important notes:
+
+- The nfs credentials are managed by the NAS.
+- Syncronization to the NAS is enough, as it uses BTRFS and a snapshot retention policy (similar to the one set in the zfs storage) is in place.
+- This script is installed in crontab, to run every day at 1am. Shouldn't take too long to run since the transfer is done with deltas.
