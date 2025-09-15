@@ -60,7 +60,7 @@ sync_nas(){
     fi
 
     msg "Starting rsync"
-    rsync -azPv --omit-dir-times --delete --exclude-from=/etc/nasExclude /silo/storage/.zfs/snapshot/$TEMPSNAPNAME/ /media/srv1/nas/silo/storage/
+    rsync -aPvH --omit-dir-times --delete --exclude-from=/etc/nasExclude /silo/storage/.zfs/snapshot/$TEMPSNAPNAME/ /media/srv1/nas/silo/storage/
     if [ $? -ne 0 ]; then   
         msg " [WARN] rsync returned an error!"
     else
